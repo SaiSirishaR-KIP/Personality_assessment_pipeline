@@ -148,4 +148,4 @@ def predict_personality(file_path):
     print(top_2_traits)
 
 # Example usage
-predict_personality('../Data/Siri.xlsx')
+predict_personality('../Data/<username>.xlsx')
