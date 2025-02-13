@@ -3,22 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personality Survey</title>
+    <title>Survey Completed</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f8f9fa; }
         .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); display: inline-block; }
-        input { padding: 10px; width: 200px; margin-right: 10px; }
-        button { padding: 10px 20px; background: blue; color: white; border: none; cursor: pointer; }
+        a { display: block; margin-top: 20px; padding: 10px 20px; background: blue; color: white; text-decoration: none; border-radius: 5px; }
     </style>
+    <script>
+        window.onload = function() {
+            window.location.href = "{{ file_path }}";
+        }
+    </script>
 </head>
 <body>
     <div class="container">
-        <h1><strong>Welcome to the Personality Traits Survey</strong></h1>
-        <p>Enter your name to start:</p>
-        <form method="POST">
-            <input type="text" name="username" required>
-            <button type="submit">Start Survey</button>
-        </form>
+        <h1>Thank you for completing the survey!</h1>
+        <p>Your responses have been recorded.</p>
+        <a href="{{ file_path }}">Download Results</a>
     </div>
 </body>
 </html>
