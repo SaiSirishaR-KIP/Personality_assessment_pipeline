@@ -1,42 +1,81 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Personality Traits Survey</title>
     <style>
-        .question-text {
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+
+        h1 {
             text-align: center;
-            font-size: 18px;
-            margin-bottom: 20px;
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            color: #333;
         }
-        .slider-container {
-            text-align: center;
-            margin: 20px 0;
-        }
-        .slider-labels {
-            display: flex;
-            justify-content: space-between;
-            width: 80%;
-            margin: 0 auto;
-        }
-        .form-container {
+
+        form {
             max-width: 800px;
             margin: 0 auto;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .question-container {
+            margin-bottom: 30px;
+        }
+
+        label {
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .scale-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #555;
+            margin-top: 5px;
+        }
+
+        button {
+            display: block;
+            margin: 20px auto 0;
+            background-color: #007bff;
+            color: #ffffff;
+            padding: 10px 20px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        button:hover {
+            background-color: #0056b3;
         }
     </style>
 </head>
 <body>
-    <h1 style="text-align: center;">Personality Traits Survey</h1>
-
-    <form action="/submit" method="post" class="form-container">
-        <input type="hidden" name="username" value="{{ username }}">
+    <h1>Personality Traits Survey</h1>
+    <form method="post" action="/survey">
         {% for question in questions %}
-        <div class="question-container">
-            <div class="question-text">{{ question }}</div>
-            <div class="slider-container">
-                <input type="range" id="{{ question }}" name="{{ question }}" min="1" max="5" value="3" style="width: 80%;">
-                <div class="slider-labels">
+            <div class="question-container">
+                <label>{{ question }}</label>
+                <input type="range" name="question_{{ loop.index0 }}" min="1" max="5" value="3">
+                <div class="scale-labels">
                     <span>Very Inaccurate</span>
                     <span>Moderately Inaccurate</span>
                     <span>Neither</span>
@@ -44,12 +83,10 @@
                     <span>Very Accurate</span>
                 </div>
             </div>
-        </div>
         {% endfor %}
-
-        <div style="text-align: center; margin-top: 30px;">
-            <button type="submit" style="padding: 10px 20px; font-size: 18px;">Submit</button>
-        </div>
+        <input type="hidden" name="username" value="{{ username }}">
+        <input type="hidden" name="page" value="{{ current_page }}">
+        <button type="submit">{% if current_page < total_pages %}Next{% else %}Submit{% endif %}</button>
     </form>
 </body>
 </html>

@@ -1,33 +1,73 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enter Username</title>
+    <title>Start Survey</title>
     <style>
-        .username-container {
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
             text-align: center;
-            margin-top: 50px;
+            background: #ffffff;
+            padding: 40px 50px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
-        .username-input {
-            width: 300px;
+
+        h1 {
+            font-size: 2.5rem;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        label {
+            font-size: 1.2rem;
+            color: #555;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        input[type="text"] {
+            font-size: 1rem;
             padding: 10px;
-            font-size: 16px;
+            width: 80%;
+            max-width: 300px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
         }
-        .submit-button {
-            margin-top: 20px;
+
+        button {
+            background-color: #007bff;
+            color: #ffffff;
             padding: 10px 20px;
-            font-size: 18px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
         }
     </style>
 </head>
 <body>
-    <div class="username-container">
+    <div class="container">
         <h1>Welcome to the Personality Traits Survey</h1>
-        <form action="/survey" method="post">
-            <label for="username" style="font-size: 18px;">Enter your username:</label><br>
-            <input type="text" id="username" name="username" class="username-input" required><br>
-            <button type="submit" class="submit-button">Start Survey</button>
+        <form method="get" action="/survey">
+            <label for="username">Enter your name to start:</label>
+            <input type="text" id="username" name="username" required>
+            <input type="hidden" name="page" value="1">
+            <button type="submit">Start Survey</button>
         </form>
     </div>
 </body>

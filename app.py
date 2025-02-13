@@ -1,8 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for
 import pandas as pd
+import math
 import os
 
-# Create Flask App
 app = Flask(__name__)
 
 # Define the questions for the personality questionnaire
@@ -24,36 +24,68 @@ questions = [
     "I am quick to understand things", "I use difficult words", "I spend time reflecting on things", "I am full of ideas",
 ]
 
+# Pagination: 5 questions per page
+QUESTIONS_PER_PAGE = 5
+
 @app.route('/')
 def get_username():
-    # Render the username input page
+    """
+    Home route to collect the username before starting the survey.
+    """
     return render_template('username.html')
 
-@app.route('/survey', methods=['POST'])
+@app.route('/survey', methods=['GET', 'POST'])
 def survey():
-    # Get the username from the form and store it in a session
-    username = request.form.get('username')
-    if not username or username.strip() == "":
-        return "Error: Username is required.", 400  # Return error for missing username
-    
-    return render_template('survey.html', questions=questions, username=username)
+    """
+    Main route for displaying and handling the survey pages.
+    """
+    if request.method == 'POST':
+        # Handle POST request: Save current responses and redirect to the next page
+        username = request.form.get('username')
+        page = int(request.form.get('page', 1))  # Default to page 1 if missing
+        responses = {key: request.form[key] for key in request.form if key.startswith("question_")}
+        
+        # Save responses to a file named after the username
+        filename = f"{username}_responses.xlsx"
+        if os.path.exists(filename):
+            existing_df = pd.read_excel(filename)
+            new_df = pd.DataFrame([responses])
+            combined_df = pd.concat([existing_df, new_df], ignore_index=True)
+            combined_df.to_excel(filename, index=False)
+        else:
+            pd.DataFrame([responses]).to_excel(filename, index=False)
 
-@app.route('/submit', methods=['POST'])
+        # Redirect to the next page or submit
+        if page < math.ceil(len(questions) / QUESTIONS_PER_PAGE):
+            return redirect(url_for('survey', username=username, page=page + 1))
+        else:
+            return redirect(url_for('submit', username=username))
+
+    # Handle GET request: Display the current page
+    username = request.args.get('username')
+    page = int(request.args.get('page', 1))  # Default to page 1 if missing
+
+    # Calculate the range of questions to display
+    start_idx = (page - 1) * QUESTIONS_PER_PAGE
+    end_idx = start_idx + QUESTIONS_PER_PAGE
+    paginated_questions = questions[start_idx:end_idx]
+
+    total_pages = math.ceil(len(questions) / QUESTIONS_PER_PAGE)
+    return render_template(
+        'survey.html',
+        questions=paginated_questions,
+        username=username,
+        current_page=page,
+        total_pages=total_pages,
+    )
+
+@app.route('/submit', methods=['GET'])
 def submit():
-    # Collect the username and ratings from the form
-    username = request.form.get('username')
-    ratings = {question: request.form.get(question) for question in questions}
-    
-    # Convert ratings to a DataFrame
-    ratings_df = pd.DataFrame([ratings])
-    
-    # Save the results to a user-specific Excel file
-    filename = f"{username.strip()}.xlsx"
-    ratings_df.to_excel(filename, index=False)
-    
-    return f"Thank you, {username}, for submitting your ratings!"
+    """
+    Final route after completing the survey.
+    """
+    username = request.args.get('username')
+    return f"Thank you, {username}, for completing the survey! Your responses have been saved."
 
-# Run the Flask app
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
-
