@@ -3,38 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personality Survey</title>
+    <title>Personality Traits Survey</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f8f9fa; }
-        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); display: inline-block; width: 50%; }
-        .question { margin-bottom: 30px; text-align: left; }
-        .slider-container { display: flex; flex-direction: column; align-items: center; }
-        .slider { width: 90%; margin: 10px 0; }
-        .labels { display: flex; justify-content: space-between; width: 90%; font-size: 12px; color: gray; }
-        button { padding: 10px 20px; background: blue; color: white; border: none; cursor: pointer; margin-top: 20px; }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .page-info {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1rem;
+            color: #777;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .question-container {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-size: 1rem;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .scale-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .value-display {
+            font-size: 1rem;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 5px;
+            color: #007bff;
+        }
+
+        button {
+            align-self: center;
+            background-color: #007bff;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:focus {
+            outline: 2px solid #0056b3;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1><strong>Personality Traits Survey</strong></h1>
-        <form method="POST">
-            {% for question in questions %}
-                <div class="question">
-                    <label>{{ question }}</label>
-                    <div class="slider-container">
-                        <input type="range" class="slider" name="q{{ loop.index0 }}" min="1" max="5" value="3" step="1">
-                        <div class="labels">
-                            <span>Very Inaccurate</span>
-                            <span>Moderately Inaccurate</span>
-                            <span>Neither</span>
-                            <span>Moderately Accurate</span>
-                            <span>Very Accurate</span>
-                        </div>
-                    </div>
+        <h1>Personality Traits Survey</h1>
+        <div class="page-info">
+            Page {{ page }} of {{ total_pages }}
+        </div>
+
+        <form method="POST" action="{{ url_for('survey', page=page) }}">
+            <input type="hidden" name="username" value="{{ session['username'] }}">
+            <input type="hidden" name="page" value="{{ page }}">
+
+            {% for i in range(questions|length) %}
+            {% set question_index = ((page-1) * QUESTIONS_PER_PAGE) + i %}
+            <div class="question-container">
+                <label for="question_{{ question_index }}">{{ questions[i] }}</label>
+
+                <input 
+                    type="range" 
+                    id="question_{{ question_index }}" 
+                    name="q{{ question_index }}"  
+                    min="1" 
+                    max="5" 
+                    step="1"
+                    value="{{ previous_responses.get('q' ~ question_index, '3') }}"
+                    required
+                    oninput="updateValue(this, 'value_display_{{ question_index }}')">
+
+                <div class="value-display" id="value_display_{{ question_index }}">
+                    {{ previous_responses.get('q' ~ question_index, '3') }}
                 </div>
+
+                <div class="scale-labels">
+                    <span>Very Inaccurate</span>
+                    <span>Moderately Inaccurate</span>
+                    <span>Neither</span>
+                    <span>Moderately Accurate</span>
+                    <span>Very Accurate</span>
+                </div>
+            </div>
             {% endfor %}
-            <button type="submit">{% if page < total_pages %}Next{% else %}Submit{% endif %}</button>
+
+            <div class="button-container">
+                <button type="submit">
+                    {% if page < total_pages %}Next{% else %}Submit{% endif %}
+                </button>
+            </div>
         </form>
     </div>
+
+    <script>
+        function updateValue(input, displayId) {
+            document.getElementById(displayId).innerText = input.value;
+        }
+    </script>
 </body>
 </html>

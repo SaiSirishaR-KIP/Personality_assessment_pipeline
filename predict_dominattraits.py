@@ -48,6 +48,7 @@ if os.path.exists(scaler_path):
 else:
     raise FileNotFoundError(f"Scaler not found at {scaler_path}")
 
+
 # Trait mapping
 trait_mapping = {
     "I am the life of the party": "EXT1",
@@ -102,35 +103,54 @@ trait_mapping = {
     "I am full of ideas": "OPN10"
 }
 
-def predict_personality(file_path, output_path=None):
-    # Read the input Excel file
-    new_data = pd.read_excel(file_path)
+def predict_personality(data):
+    """
+    Predict personality traits based on user survey responses.
 
-    # Preprocess and map questionnaire text to trait labels
-    mapped_columns = {column: trait_mapping[column] for column in new_data.columns if column in trait_mapping}
-    new_data = new_data.rename(columns=mapped_columns)
+    Args:
+        data (pd.DataFrame): DataFrame containing survey responses.
 
-    # Data preprocessing
-    negatively_keyed = ['EXT2', 'EXT4', 'EXT6', 'EXT8', 'EXT10',
-                        'EST2', 'EST4',
-                        'AGR1', 'AGR3', 'AGR5', 'AGR7',
-                        'CSN2', 'CSN4', 'CSN6', 'CSN8',
-                        'OPN2', 'OPN4', 'OPN6']
+    Returns:
+        pd.DataFrame: Predictions for all personality traits.
+        list: Top 2 dominant traits for each user.
+        pd.DataFrame: Processed response matrix.
+    """
+
+    print("❌❌❌",data)
+    # Map survey questions to trait labels
+    mapped_columns = {column: trait_mapping[column] for column in data.columns if column in trait_mapping}
+    data = data.rename(columns=mapped_columns)
+
+    # Reverse scoring for negatively keyed items
+    negatively_keyed = [
+        'EXT2', 'EXT4', 'EXT6', 'EXT8', 'EXT10',
+        'EST2', 'EST4',
+        'AGR1', 'AGR3', 'AGR5', 'AGR7',
+        'CSN2', 'CSN4', 'CSN6', 'CSN8',
+        'OPN2', 'OPN4', 'OPN6'
+    ]
     for col in negatively_keyed:
-        if col in new_data.columns:
-            new_data[col] = 6 - new_data[col]
+        if col in data.columns:
+            data[col] = 6 - data[col]
 
-    # Drop rows with missing values
-    new_data = new_data.dropna()
+    # Ensure all required columns are present
+    all_trait_columns = [
+        f"{trait}{i}" for trait in ['EXT', 'AGR', 'EST', 'CSN', 'OPN']
+        for i in range(1, 11)
+    ]
+    for col in all_trait_columns:
+        if col not in data.columns:
+            print(f"Warning: Missing column {col}. Filling with default value of 3.")
+            data[col] = 3
 
     # Aggregate trait scores
     features = ['EXT', 'AGR', 'EST', 'CSN', 'OPN']
     for trait in features:
-        cols = [f"{trait}{i}" for i in range(1, 11) if f"{trait}{i}" in new_data.columns]
-        new_data[trait] = new_data[cols].mean(axis=1)
+        cols = [f"{trait}{i}" for i in range(1, 11) if f"{trait}{i}" in data.columns]
+        data[trait] = data[cols].mean(axis=1)
 
     # Scale features
-    X_new = scaler.transform(new_data[features].values)
+    X_new = scaler.transform(data[features].values)
     X_new = torch.tensor(X_new, dtype=torch.float32)
 
     # Predictions
@@ -142,18 +162,9 @@ def predict_personality(file_path, output_path=None):
     predictions_df = pd.DataFrame(predictions)
 
     # Identify top 2 dominant traits for each user
-    top_2_traits = predictions_df.apply(lambda row: row.nlargest(2).index.tolist(), axis=1)
+    dominant_traits = predictions_df.apply(lambda row: row.nlargest(2).index.tolist(), axis=1)
 
-    # Save results to file if output path is provided
-    if output_path:
-        with pd.ExcelWriter(output_path) as writer:
-            predictions_df.to_excel(writer, sheet_name="Predictions", index=False)
-            top_2_traits.to_frame("Top 2 Traits").to_excel(writer, sheet_name="Dominant Traits", index=False)
+    return predictions_df, dominant_traits.tolist(), data
 
-    print("Predictions and dominant traits successfully processed.")
-    print(predictions_df)
-    print("\nTop 2 Dominant Traits:")
-    print(top_2_traits)
 
-# Example usage
-predict_personality('../Questionnaire_setup/user_ratings_results.xlsx', output_path='../Data/personality_predictions.xlsx')
+

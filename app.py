@@ -1,11 +1,13 @@
-from flask import Flask, render_template, request, redirect, url_for, session, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, send_file, jsonify
 import pandas as pd
 import os
+import json
+from predict_dominattraits import predict_personality  # Ensure this module exists
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
-# Define questions for the personality survey
+# Define survey questions
 questions = [
     "I am the life of the party", "I don't talk a lot", "I feel comfortable around people", "I keep in the background",
     "I start conversations", "I have little to say", "I talk to a lot of different people at parties",
@@ -30,7 +32,13 @@ QUESTIONS_PER_PAGE = 5
 @app.route("/", methods=["GET", "POST"])
 def username():
     if request.method == "POST":
-        session["username"] = request.form["username"]
+        username = request.form.get("username", "").strip()
+        if not username:
+            return redirect(url_for("username"))  # Prevent empty usernames
+        session.clear()
+        session["username"] = username
+        session["responses"] = {}
+        session.modified = True
         return redirect(url_for("survey", page=1))
     return render_template("username.html")
 
@@ -43,48 +51,88 @@ def survey(page):
     end = min(start + QUESTIONS_PER_PAGE, len(questions))
     questions_subset = questions[start:end]
 
+    if "responses" not in session:
+        session["responses"] = {}
+
     if request.method == "POST":
-        for i in range(start, end):
-            session[f"q{i}"] = request.form.get(f"q{i}", "3")
+        new_responses = dict(session["responses"])
+
+        for key, value in request.form.items():
+            if key.startswith("q"):  
+                try:
+                    new_responses[key] = float(value)
+                except ValueError:
+                    new_responses[key] = 3.0 
+
+        session["responses"] = new_responses
+        session.modified = True
 
         if end < len(questions):
             return redirect(url_for("survey", page=page + 1))
         return redirect(url_for("results"))
 
-    return render_template("survey.html", questions=questions_subset, page=page, total_pages=(len(questions) + QUESTIONS_PER_PAGE - 1) // QUESTIONS_PER_PAGE)
+    previous_responses = {
+        f"q{i}": session["responses"].get(f"q{i}", "3") for i in range(start, end)
+    }
+
+    return render_template(
+        "survey.html",
+        questions=questions_subset,
+        page=page,
+        total_pages=(len(questions) + QUESTIONS_PER_PAGE - 1) // QUESTIONS_PER_PAGE,
+        previous_responses=previous_responses,
+        QUESTIONS_PER_PAGE=QUESTIONS_PER_PAGE
+    )
 
 @app.route("/results")
 def results():
-    if "username" not in session:
+    if "username" not in session or "responses" not in session:
         return redirect(url_for("username"))
 
-    # Ensure the static directory exists
-    static_dir = "static"
-    if not os.path.exists(static_dir):
-        os.makedirs(static_dir)
+    username = session["username"].replace(" ", "_")
+    file_name = f"survey_results_{username}.json"
+    file_path = os.path.join("static", file_name)
 
-    # Save survey results properly formatted in an Excel sheet
-    username = session["username"].replace(" ", "_")  # Sanitize filename
-    file_name = f"survey_results_{username}.xlsx"
-    file_path = os.path.join(static_dir, file_name)
+    responses = {}
+    for i, q in enumerate(questions):
+        key = f"q{i}"
+        try:
+            responses[q] = float(session["responses"].get(key, "3"))
+        except ValueError:
+            responses[q] = 3.0 
 
-    data = {q: [session.get(f"q{i}", "3")] for i, q in enumerate(questions)}
-    df = pd.DataFrame(data)
+    df = pd.DataFrame([responses])
 
-    # Save the DataFrame properly formatted
-    with pd.ExcelWriter(file_path, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name="Survey Results")
-        workbook = writer.book
-        worksheet = writer.sheets["Survey Results"]
-        for col_num, value in enumerate(df.columns.values):
-            worksheet.write(0, col_num, value)  # Ensure headers are properly written
+    try:
+        trait_scores, dominant_traits, _ = predict_personality(df)
+        trait_scores_json = trait_scores.to_dict(orient="records")[0]
+    except Exception as e:
+        trait_scores_json = {}
+        dominant_traits = []
 
-    return render_template("results.html", file_path=url_for('download_results', filename=file_name))
+    result_data = {
+        "username": username,
+        "trait_scores": trait_scores_json,
+        "dominant_traits": dominant_traits[:2]
+    }
+
+    with open(file_path, "w") as json_file:
+        json.dump(result_data, json_file, indent=4)
+
+    return render_template(
+        "results.html",
+        username=username,
+        trait_scores=trait_scores_json,
+        dominant_traits=result_data["dominant_traits"],
+        file_path=url_for("download_results", filename=file_name)
+    )
 
 @app.route("/download/<filename>")
 def download_results(filename):
     file_path = os.path.join("static", filename)
-    return send_file(file_path, as_attachment=True)
+    if os.path.exists(file_path):
+        return send_file(file_path, as_attachment=True)
+    return "File not found", 404
 
 if __name__ == "__main__":
     app.run(debug=True)

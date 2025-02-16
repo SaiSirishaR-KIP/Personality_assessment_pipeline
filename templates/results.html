@@ -3,23 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Survey Completed</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f8f9fa; }
-        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); display: inline-block; }
-        a { display: block; margin-top: 20px; padding: 10px 20px; background: blue; color: white; text-decoration: none; border-radius: 5px; }
-    </style>
-    <script>
-        window.onload = function() {
-            window.location.href = "{{ file_path }}";
-        }
-    </script>
+    <title>Survey Results</title>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div class="container">
-        <h1>Thank you for completing the survey!</h1>
-        <p>Your responses have been recorded.</p>
-        <a href="{{ file_path }}">Download Results</a>
+        <h1>Survey Results for <span class="username">{{ username }}</span></h1>
+        
+        <div class="results-box">
+            <h2>🎯 Dominant Personality Traits</h2>
+            <p><b>{{ dominant_traits[0] }}</b> and <b>{{ dominant_traits[1] }}</b> are your most dominant traits.</p>
+
+            <h3>📊 Trait Scores</h3>
+            {% if trait_scores %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Trait</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for trait, score in trait_scores.items() %}
+                        <tr>
+                            <td>{{ trait }}</td>
+                            <td>{{ score|round(2) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No results available. Please complete the survey.</p>
+            {% endif %}
+        </div>
+
+        <div class="button-container">
+            <a href="{{ file_path }}" class="btn">Download JSON</a>
+            <a href="/" class="btn">Take the Survey Again</a>
+        </div>
     </div>
 </body>
 </html>
